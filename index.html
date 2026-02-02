@@ -33,7 +33,6 @@ body {
   max-width: 400px;
   margin: auto;
   padding: 16px;
-  /* Creates a side-by-side layout on large screens */
   display: flex;
   flex-wrap: wrap;
   gap: 20px;
@@ -45,17 +44,13 @@ body {
   border-radius: 16px;
   border: 2px solid var(--border);
   padding: 16px;
-  /* Sets base width to roughly half, minus the gap */
   flex: 1 1 calc(50% - 20px);
-  /* flex: 1 1 350px; */ /* Allows cards to sit side-by-side */ 
-  min-width: 300px; /* Ensures it doesn't get too squished */
+  min-width: 300px;
   max-width: 480px; 
   box-sizing: border-box;
   overflow-x: auto;
 }
 
-
-/* Ensure actions take full width below the cards */
 .actions {
   width: 100%;
   display: flex;
@@ -74,6 +69,18 @@ h2 {
   text-transform: uppercase;
 }
 
+.controls {
+  margin-bottom: 12px;
+}
+
+select {
+  padding: 4px;
+  border-radius: 4px;
+  border: 1px solid var(--border);
+  font-size: 14px;
+  width: 100%;
+}
+
 .math {
   font-family: monospace;
   font-weight: bold;
@@ -83,18 +90,16 @@ h2 {
   display: flex;
   justify-content: flex-start;
   align-items: center;
-  /* Removes any accidental gaps */
   height: var(--cell); 
 }
 
-/* Ensure all cells and inputs have the same footprint */
 .cell, input {
   width: var(--cell);
   height: var(--cell);
   line-height: var(--cell);
   font-size: var(--cell-font);
   text-align: center;
-  box-sizing: border-box; /* Crucial for alignment */
+  box-sizing: border-box;
   flex-shrink: 0;
 }
 
@@ -124,7 +129,7 @@ input:focus {
 
 .div-hline {
   border-top: 3px solid #000;
-  width: calc(var(--cell) * 3); /* Adjust based on expected quotient length */
+  width: calc(var(--cell) * 3);
   margin: 0;
 }
 
@@ -147,25 +152,10 @@ button {
   border: none;
 }
 
-
-
-/* New scoping for Multiplication ONLY */
 .math-column .row {
-  justify-content: flex-end; /* Right-aligns multiplication */
+  justify-content: flex-end;
 }
 
-/* Standardize all boxes to prevent shifting */
-.cell, input {
-  width: var(--cell);
-  height: var(--cell);
-  box-sizing: border-box;
-  text-align: center;
-  font-size: var(--cell-font);
-  flex-shrink: 0;
-  margin: 0;
-}
-
-/* Separate line styles for Division vs Multiplication */
 .div-hline {
   border-top: 3px solid #000;
   width: calc(var(--cell) * 4);
@@ -173,7 +163,7 @@ button {
 
 .mul-hline {
   border-top: 3px solid #000;
-  width: 100%; /* Spans the width of the row container */
+  width: 100%;
   margin: 4px 0;
 }
 
@@ -183,23 +173,33 @@ button {
   justify-content: center;
   font-weight: bold;
 }
-
-
 </style>
 </head>
 
 <body>
 <div class="app">
 
-  <!-- DIVISION -->
   <div id="divCard" class="card">
     <h2>Dalyba kampu</h2>
+    <div class="controls">
+      <select id="divMode">
+        <option value="random">Atsitiktinis daliklis</option>
+        <option value="1digit">Daliklis: 1 skaitmuo (Lengvas)</option>
+        <option value="2digits">Daliklis: 2 skaitmenys (Sunkus)</option>
+      </select>
+    </div>
     <div id="division" class="math"></div>
   </div>
 
-  <!-- MULTIPLICATION -->
   <div id="mulCard" class="card">
     <h2>Daugyba stulpeliu</h2>
+    <div class="controls">
+      <select id="mulMode">
+        <option value="3x2">3 skaitm. × 2 skaitm. (Sunkus)</option>
+        <option value="2x2">2 skaitm. × 2 skaitm. (Vidutinis)</option>
+        <option value="3x1">3 skaitm. × 1 skaitmuo (Lengvas)</option>
+      </select>
+    </div>
     <div id="multiplication" class="math math-column"></div>
   </div>
 
@@ -221,22 +221,20 @@ function rand(min, max) {
 }
 
 function generate() {
-  // division
-  const divisor = rand(4, 15);
+  // Division Generation
+  const divMode = document.getElementById("divMode").value;
+  let divisor = divMode === "1digit" ? rand(2, 9) : (divMode === "2digits" ? rand(10, 25) : rand(4, 15));
   const quotient = rand(20, 99);
-  division = {
-    divisor,
-    dividend: divisor * quotient,
-    quotient: quotient.toString()
-  };
+  division = { divisor, dividend: divisor * quotient, quotient: quotient.toString() };
 
-  // multiplication
-  const a = rand(100, 999);
-  const b = rand(10, 99);
-  multiplication = {
-    a, b,
-    result: (a * b).toString()
-  };
+  // Multiplication Generation
+  const mulMode = document.getElementById("mulMode").value;
+  let a, b;
+  if (mulMode === "3x1") { a = rand(100, 999); b = rand(2, 9); }
+  else if (mulMode === "2x2") { a = rand(10, 99); b = rand(11, 99); }
+  else { a = rand(100, 999); b = rand(11, 99); }
+  
+  multiplication = { a, b, result: (a * b).toString() };
 
   renderDivision();
   renderMultiplication();
@@ -247,30 +245,26 @@ function renderDivision() {
   const d = division;
   const el = document.getElementById("division");
   el.innerHTML = "";
-
   const divStr = d.dividend.toString();
   const sorStr = d.divisor.toString();
 
-  // 1. TOP ROW: [Spacer] [Dividend] | [Divisor]
   const top = document.createElement("div");
   top.className = "row";
-  top.appendChild(box("")); // Spacer for alignment
+  top.appendChild(box("")); 
   divStr.split("").forEach(n => top.appendChild(box(n)));
   top.appendChild(vline());
   sorStr.split("").forEach(n => top.appendChild(box(n)));
   el.appendChild(top);
 
-  // 2. LINE ROW: [Spacers] | [______]
   const hRow = document.createElement("div");
   hRow.className = "row";
-  // One for the spacer, then one for each dividend digit
   for (let i = 0; i <= divStr.length; i++) hRow.appendChild(box("")); 
   const line = document.createElement("div");
   line.className = "div-hline";
+  line.style.width = `calc(var(--cell) * ${Math.max(3, sorStr.length)})`;
   hRow.appendChild(line);
   el.appendChild(hRow);
 
-  // 3. QUOTIENT ROW: [Spacers] | [Result]
   const qRow = document.createElement("div");
   qRow.className = "row";
   for (let i = 0; i <= divStr.length; i++) qRow.appendChild(box(""));
@@ -279,16 +273,10 @@ function renderDivision() {
   });
   el.appendChild(qRow);
 
-  // 4. SUBTRACTION ROWS
-  // We align these by placing the "−" in the first column
   for (let r = 0; r < 4; r++) {
     const row = document.createElement("div");
     row.className = "row";
-    
-    // The "minus" column
     row.appendChild(box(r % 2 === 0 ? "−" : "")); 
-
-    // Digit columns - now perfectly aligned with the top dividend
     for (let i = 0; i < divStr.length; i++) {
       row.appendChild(inp("ds" + r + "-" + i, "", false));
     }
@@ -304,7 +292,8 @@ function renderMultiplication() {
   const aStr = m.a.toString();
   const bStr = m.b.toString();
   const resStr = m.result.toString();
-  const maxCols = resStr.length; // Usually 5 digits
+  const isTwoRow = bStr.length > 1;
+  const maxCols = resStr.length;
 
   // 1. Top Number
   const r1 = document.createElement("div");
@@ -316,7 +305,6 @@ function renderMultiplication() {
   // 2. Bottom Number + Sign
   const r2 = document.createElement("div");
   r2.className = "row";
-  // The sign stays to the left of the digits
   for (let i = 0; i < maxCols - bStr.length - 1; i++) r2.appendChild(box(""));
   const sign = document.createElement("div");
   sign.className = "m-sign";
@@ -327,24 +315,30 @@ function renderMultiplication() {
 
   el.appendChild(mulHr(maxCols));
 
-  // 3. Partial Product 1 (Aligned with Units)
-  const p1 = document.createElement("div");
-  p1.className = "row";
-  for (let i = 0; i < maxCols - 4; i++) p1.appendChild(box(""));
-  for (let i = 0; i < 4; i++) p1.appendChild(inp("mp0-" + i, "", false));
-  el.appendChild(p1);
+  if (isTwoRow) {
+    // Partial Product 1
+    const p1 = document.createElement("div");
+    p1.className = "row";
+    for (let i = 0; i < maxCols - 4; i++) p1.appendChild(box(""));
+    for (let i = 0; i < 4; i++) p1.appendChild(inp("mp0-" + i, "", false));
+    el.appendChild(p1);
 
-  // 4. Partial Product 2 (Shifted left by one cell)
-  const p2 = document.createElement("div");
-  p2.className = "row";
-  for (let i = 0; i < maxCols - 5; i++) p2.appendChild(box(""));
-  for (let i = 0; i < 4; i++) p2.appendChild(inp("mp1-" + i, "", false));
-  p2.appendChild(box("")); // This empty box creates the "shift"
-  el.appendChild(p2);
+    // Partial Product 2 + PLUS SIGN
+    const p2 = document.createElement("div");
+    p2.className = "row";
+    for (let i = 0; i < maxCols - 6; i++) p2.appendChild(box(""));
+    const plus = document.createElement("div");
+    plus.className = "m-sign";
+    plus.textContent = "+";
+    p2.appendChild(plus);
+    for (let i = 0; i < 4; i++) p2.appendChild(inp("mp1-" + i, "", false));
+    p2.appendChild(box("")); 
+    el.appendChild(p2);
 
-  el.appendChild(mulHr(maxCols));
+    el.appendChild(mulHr(maxCols));
+  }
 
-  // 5. Final Result
+  // Final Result
   const resRow = document.createElement("div");
   resRow.className = "row";
   resStr.split("").forEach((n, i) => {
@@ -353,7 +347,6 @@ function renderMultiplication() {
   el.appendChild(resRow);
 }
 
-// Helper to create the correct width line for multiplication
 function mulHr(cols) {
   const h = document.createElement("div");
   h.className = "row";
@@ -365,16 +358,7 @@ function mulHr(cols) {
 }
 
 function box(t){ const d=document.createElement("div"); d.className="cell"; d.textContent=t; return d; }
-/*
-function inp(id, ans, required){
-  const i=document.createElement("input");
-  i.maxLength=1;
-  i.dataset.ans=ans;
-  if(required) i.dataset.required="1";
-  i.oninput=()=>dirty=true;
-  return i;
-}
-*/
+
 function inp(id, ans, required) {
   const i = document.createElement("input");
   i.id = id;
@@ -389,29 +373,13 @@ function inp(id, ans, required) {
     if (i.value.length === 1) {
       const inputs = Array.from(document.querySelectorAll('input'));
       const index = inputs.indexOf(i);
-      
-      // Determine direction: mp (helpers) and mr (multiplication result) go LEFT
       const isRightToLeft = id.includes("mp") || id.includes("mr");
-
       if (isRightToLeft) {
         const prevIndex = index - 1;
-        if (prevIndex >= 0) {
-          const prevInput = inputs[prevIndex];
-          // Row-lock: stay in the same line
-          if (prevInput.parentElement === i.parentElement) {
-            prevInput.focus();
-          }
-        }
+        if (prevIndex >= 0 && inputs[prevIndex].parentElement === i.parentElement) inputs[prevIndex].focus();
       } else {
-        // Standard Left-to-Right (Division)
         const nextIndex = index + 1;
-        if (nextIndex < inputs.length) {
-          const nextInput = inputs[nextIndex];
-          // Row-lock: stay in the same line
-          if (nextInput.parentElement === i.parentElement) {
-            nextInput.focus();
-          }
-        }
+        if (nextIndex < inputs.length && inputs[nextIndex].parentElement === i.parentElement) nextInput.focus();
       }
     }
   };
@@ -421,53 +389,25 @@ function inp(id, ans, required) {
       const inputs = Array.from(document.querySelectorAll('input'));
       const index = inputs.indexOf(i);
       const isRightToLeft = id.includes("mp") || id.includes("mr");
-
       if (isRightToLeft) {
-        // Backspace moves RIGHT in RTL fields
         const nextIndex = index + 1;
-        if (nextIndex < inputs.length && inputs[nextIndex].parentElement === i.parentElement) {
-          inputs[nextIndex].focus();
-        }
+        if (nextIndex < inputs.length && inputs[nextIndex].parentElement === i.parentElement) inputs[nextIndex].focus();
       } else {
-        // Backspace moves LEFT in LTR fields
         const prevIndex = index - 1;
-        if (prevIndex >= 0 && inputs[prevIndex].parentElement === i.parentElement) {
-          inputs[prevIndex].focus();
-        }
+        if (prevIndex >= 0 && inputs[prevIndex].parentElement === i.parentElement) inputs[prevIndex].focus();
       }
     }
   };
-
   return i;
 }
 
-function rowStatic(str){
-  const r=document.createElement("div"); r.className="row";
-  str.toString().split("").forEach(c=>r.appendChild(box(c)));
-  return r;
-}
-function rowInputs(prefix, ans="", required=false){
-  const r=document.createElement("div"); r.className="row";
-  (ans||"    ").split("").forEach((c,i)=>{
-    r.appendChild(inp(prefix+i, c, required));
-  });
-  return r;
-}
 function vline(){ const v=document.createElement("div"); v.className="vline"; return v; }
-function hr(){ const h=document.createElement("div"); h.className="hline"; return h; }
 
 function check(){
   let divOk=true, mulOk=true;
-
-  document.querySelectorAll("#division input[data-required]")
-    .forEach(i=>{ if(i.value!==i.dataset.ans) divOk=false; });
-
-  document.querySelectorAll("#multiplication input[data-required]")
-    .forEach(i=>{ if(i.value!==i.dataset.ans) mulOk=false; });
-
-  setCard("divCard", divOk);
-  setCard("mulCard", mulOk);
-
+  document.querySelectorAll("#division input[data-required]").forEach(i=>{ if(i.value!==i.dataset.ans) divOk=false; });
+  document.querySelectorAll("#multiplication input[data-required]").forEach(i=>{ if(i.value!==i.dataset.ans) mulOk=false; });
+  setCard("divCard", divOk); setCard("mulCard", mulOk);
   if(divOk && mulOk) dirty=false;
 }
 
@@ -478,9 +418,7 @@ function setCard(id, ok){
 }
 
 function show(){
-  document.querySelectorAll("input[data-ans]").forEach(i=>{
-    if(i.dataset.ans) i.value=i.dataset.ans;
-  });
+  document.querySelectorAll("input[data-ans]").forEach(i=>{ if(i.dataset.ans) i.value=i.dataset.ans; });
   dirty=false;
 }
 
