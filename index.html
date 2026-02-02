@@ -1,0 +1,500 @@
+<!DOCTYPE html>
+<html lang="lt">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Matematikos Praktika – 4 klasė</title>
+
+<style>
+:root {
+  --cell: 36px;
+  --cell-font: 22px;
+  --blue: #1a73e8;
+  --ok: #1e8e3e;
+  --bad: #d93025;
+  --border: #dadce0;
+  --bg: #f8f9fa;
+}
+
+@media (max-width: 480px) {
+  :root {
+    --cell: 30px;
+    --cell-font: 18px;
+  }
+}
+
+body {
+  margin: 0;
+  font-family: system-ui, sans-serif;
+  background: var(--bg);
+}
+
+.app {
+  max-width: 400px;
+  margin: auto;
+  padding: 16px;
+  /* Creates a side-by-side layout on large screens */
+  display: flex;
+  flex-wrap: wrap;
+  gap: 20px;
+  justify-content: center;
+}
+
+.card {
+  background: #fff;
+  border-radius: 16px;
+  border: 2px solid var(--border);
+  padding: 16px;
+  /* Sets base width to roughly half, minus the gap */
+  flex: 1 1 calc(50% - 20px);
+  /* flex: 1 1 350px; */ /* Allows cards to sit side-by-side */ 
+  min-width: 300px; /* Ensures it doesn't get too squished */
+  max-width: 480px; 
+  box-sizing: border-box;
+  overflow-x: auto;
+}
+
+
+/* Ensure actions take full width below the cards */
+.actions {
+  width: 100%;
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  margin-top: 20px;
+}
+
+.card.correct { border-color: var(--ok); background: #e6f4ea; }
+.card.incorrect { border-color: var(--bad); background: #fce8e6; }
+
+h2 {
+  margin: 0 0 12px;
+  font-size: 16px;
+  color: #555;
+  text-transform: uppercase;
+}
+
+.math {
+  font-family: monospace;
+  font-weight: bold;
+}
+
+.row {
+  display: flex;
+  justify-content: flex-start;
+  align-items: center;
+  /* Removes any accidental gaps */
+  height: var(--cell); 
+}
+
+/* Ensure all cells and inputs have the same footprint */
+.cell, input {
+  width: var(--cell);
+  height: var(--cell);
+  line-height: var(--cell);
+  font-size: var(--cell-font);
+  text-align: center;
+  box-sizing: border-box; /* Crucial for alignment */
+  flex-shrink: 0;
+}
+
+.cell {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+input {
+  border: 1px solid #bbb;
+  border-radius: 6px;
+  color: var(--blue);
+}
+
+input:focus {
+  outline: none;
+  border: 2px solid var(--blue);
+}
+
+.vline {
+  border-left: 3px solid #000;
+  height: var(--cell);
+  margin-left: 4px;
+  margin-right: 4px;
+}
+
+.div-hline {
+  border-top: 3px solid #000;
+  width: calc(var(--cell) * 3); /* Adjust based on expected quotient length */
+  margin: 0;
+}
+
+.hline {
+  border-top: 3px solid #000;
+  width: calc(var(--cell) * 3);
+  margin: 6px 0;
+}
+
+button {
+  padding: 10px 18px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  cursor: pointer;
+}
+
+.primary {
+  background: var(--blue);
+  color: #fff;
+  border: none;
+}
+
+
+
+/* New scoping for Multiplication ONLY */
+.math-column .row {
+  justify-content: flex-end; /* Right-aligns multiplication */
+}
+
+/* Standardize all boxes to prevent shifting */
+.cell, input {
+  width: var(--cell);
+  height: var(--cell);
+  box-sizing: border-box;
+  text-align: center;
+  font-size: var(--cell-font);
+  flex-shrink: 0;
+  margin: 0;
+}
+
+/* Separate line styles for Division vs Multiplication */
+.div-hline {
+  border-top: 3px solid #000;
+  width: calc(var(--cell) * 4);
+}
+
+.mul-hline {
+  border-top: 3px solid #000;
+  width: 100%; /* Spans the width of the row container */
+  margin: 4px 0;
+}
+
+.m-sign {
+  width: var(--cell);
+  display: flex;
+  justify-content: center;
+  font-weight: bold;
+}
+
+
+</style>
+</head>
+
+<body>
+<div class="app">
+
+  <!-- DIVISION -->
+  <div id="divCard" class="card">
+    <h2>Dalyba kampu</h2>
+    <div id="division" class="math"></div>
+  </div>
+
+  <!-- MULTIPLICATION -->
+  <div id="mulCard" class="card">
+    <h2>Daugyba stulpeliu</h2>
+    <div id="multiplication" class="math math-column"></div>
+  </div>
+
+  <div class="actions">
+    <button onclick="newTasks()">Nauji uždaviniai</button>
+    <button class="primary" onclick="check()">Tikrinti</button>
+    <button onclick="show()">Rodyti atsakymą</button>
+  </div>
+
+</div>
+
+<script>
+let division = {};
+let multiplication = {};
+let dirty = false;
+
+function rand(min, max) {
+  return Math.floor(Math.random() * (max - min + 1)) + min;
+}
+
+function generate() {
+  // division
+  const divisor = rand(4, 15);
+  const quotient = rand(20, 99);
+  division = {
+    divisor,
+    dividend: divisor * quotient,
+    quotient: quotient.toString()
+  };
+
+  // multiplication
+  const a = rand(100, 999);
+  const b = rand(10, 99);
+  multiplication = {
+    a, b,
+    result: (a * b).toString()
+  };
+
+  renderDivision();
+  renderMultiplication();
+  resetState();
+}
+
+function renderDivision() {
+  const d = division;
+  const el = document.getElementById("division");
+  el.innerHTML = "";
+
+  const divStr = d.dividend.toString();
+  const sorStr = d.divisor.toString();
+
+  // 1. TOP ROW: [Spacer] [Dividend] | [Divisor]
+  const top = document.createElement("div");
+  top.className = "row";
+  top.appendChild(box("")); // Spacer for alignment
+  divStr.split("").forEach(n => top.appendChild(box(n)));
+  top.appendChild(vline());
+  sorStr.split("").forEach(n => top.appendChild(box(n)));
+  el.appendChild(top);
+
+  // 2. LINE ROW: [Spacers] | [______]
+  const hRow = document.createElement("div");
+  hRow.className = "row";
+  // One for the spacer, then one for each dividend digit
+  for (let i = 0; i <= divStr.length; i++) hRow.appendChild(box("")); 
+  const line = document.createElement("div");
+  line.className = "div-hline";
+  hRow.appendChild(line);
+  el.appendChild(hRow);
+
+  // 3. QUOTIENT ROW: [Spacers] | [Result]
+  const qRow = document.createElement("div");
+  qRow.className = "row";
+  for (let i = 0; i <= divStr.length; i++) qRow.appendChild(box(""));
+  d.quotient.split("").forEach((n, i) => {
+    qRow.appendChild(inp("dq" + i, n, true));
+  });
+  el.appendChild(qRow);
+
+  // 4. SUBTRACTION ROWS
+  // We align these by placing the "−" in the first column
+  for (let r = 0; r < 4; r++) {
+    const row = document.createElement("div");
+    row.className = "row";
+    
+    // The "minus" column
+    row.appendChild(box(r % 2 === 0 ? "−" : "")); 
+
+    // Digit columns - now perfectly aligned with the top dividend
+    for (let i = 0; i < divStr.length; i++) {
+      row.appendChild(inp("ds" + r + "-" + i, "", false));
+    }
+    el.appendChild(row);
+  }
+}
+
+function renderMultiplication() {
+  const m = multiplication;
+  const el = document.getElementById("multiplication");
+  el.innerHTML = "";
+
+  const aStr = m.a.toString();
+  const bStr = m.b.toString();
+  const resStr = m.result.toString();
+  const maxCols = resStr.length; // Usually 5 digits
+
+  // 1. Top Number
+  const r1 = document.createElement("div");
+  r1.className = "row";
+  for (let i = 0; i < maxCols - aStr.length; i++) r1.appendChild(box(""));
+  aStr.split("").forEach(n => r1.appendChild(box(n)));
+  el.appendChild(r1);
+
+  // 2. Bottom Number + Sign
+  const r2 = document.createElement("div");
+  r2.className = "row";
+  // The sign stays to the left of the digits
+  for (let i = 0; i < maxCols - bStr.length - 1; i++) r2.appendChild(box(""));
+  const sign = document.createElement("div");
+  sign.className = "m-sign";
+  sign.textContent = "×";
+  r2.appendChild(sign);
+  bStr.split("").forEach(n => r2.appendChild(box(n)));
+  el.appendChild(r2);
+
+  el.appendChild(mulHr(maxCols));
+
+  // 3. Partial Product 1 (Aligned with Units)
+  const p1 = document.createElement("div");
+  p1.className = "row";
+  for (let i = 0; i < maxCols - 4; i++) p1.appendChild(box(""));
+  for (let i = 0; i < 4; i++) p1.appendChild(inp("mp0-" + i, "", false));
+  el.appendChild(p1);
+
+  // 4. Partial Product 2 (Shifted left by one cell)
+  const p2 = document.createElement("div");
+  p2.className = "row";
+  for (let i = 0; i < maxCols - 5; i++) p2.appendChild(box(""));
+  for (let i = 0; i < 4; i++) p2.appendChild(inp("mp1-" + i, "", false));
+  p2.appendChild(box("")); // This empty box creates the "shift"
+  el.appendChild(p2);
+
+  el.appendChild(mulHr(maxCols));
+
+  // 5. Final Result
+  const resRow = document.createElement("div");
+  resRow.className = "row";
+  resStr.split("").forEach((n, i) => {
+    resRow.appendChild(inp("mr" + i, n, true));
+  });
+  el.appendChild(resRow);
+}
+
+// Helper to create the correct width line for multiplication
+function mulHr(cols) {
+  const h = document.createElement("div");
+  h.className = "row";
+  const line = document.createElement("div");
+  line.className = "mul-hline";
+  line.style.width = `calc(var(--cell) * ${cols})`;
+  h.appendChild(line);
+  return h;
+}
+
+function box(t){ const d=document.createElement("div"); d.className="cell"; d.textContent=t; return d; }
+/*
+function inp(id, ans, required){
+  const i=document.createElement("input");
+  i.maxLength=1;
+  i.dataset.ans=ans;
+  if(required) i.dataset.required="1";
+  i.oninput=()=>dirty=true;
+  return i;
+}
+*/
+function inp(id, ans, required) {
+  const i = document.createElement("input");
+  i.id = id;
+  i.type = "text";
+  i.inputMode = "numeric";
+  i.maxLength = 1;
+  i.dataset.ans = ans;
+  if (required) i.dataset.required = "1";
+
+  i.oninput = () => {
+    dirty = true;
+    if (i.value.length === 1) {
+      const inputs = Array.from(document.querySelectorAll('input'));
+      const index = inputs.indexOf(i);
+      
+      // Determine direction: mp (helpers) and mr (multiplication result) go LEFT
+      const isRightToLeft = id.includes("mp") || id.includes("mr");
+
+      if (isRightToLeft) {
+        const prevIndex = index - 1;
+        if (prevIndex >= 0) {
+          const prevInput = inputs[prevIndex];
+          // Row-lock: stay in the same line
+          if (prevInput.parentElement === i.parentElement) {
+            prevInput.focus();
+          }
+        }
+      } else {
+        // Standard Left-to-Right (Division)
+        const nextIndex = index + 1;
+        if (nextIndex < inputs.length) {
+          const nextInput = inputs[nextIndex];
+          // Row-lock: stay in the same line
+          if (nextInput.parentElement === i.parentElement) {
+            nextInput.focus();
+          }
+        }
+      }
+    }
+  };
+
+  i.onkeydown = (e) => {
+    if (e.key === "Backspace" && i.value === "") {
+      const inputs = Array.from(document.querySelectorAll('input'));
+      const index = inputs.indexOf(i);
+      const isRightToLeft = id.includes("mp") || id.includes("mr");
+
+      if (isRightToLeft) {
+        // Backspace moves RIGHT in RTL fields
+        const nextIndex = index + 1;
+        if (nextIndex < inputs.length && inputs[nextIndex].parentElement === i.parentElement) {
+          inputs[nextIndex].focus();
+        }
+      } else {
+        // Backspace moves LEFT in LTR fields
+        const prevIndex = index - 1;
+        if (prevIndex >= 0 && inputs[prevIndex].parentElement === i.parentElement) {
+          inputs[prevIndex].focus();
+        }
+      }
+    }
+  };
+
+  return i;
+}
+
+function rowStatic(str){
+  const r=document.createElement("div"); r.className="row";
+  str.toString().split("").forEach(c=>r.appendChild(box(c)));
+  return r;
+}
+function rowInputs(prefix, ans="", required=false){
+  const r=document.createElement("div"); r.className="row";
+  (ans||"    ").split("").forEach((c,i)=>{
+    r.appendChild(inp(prefix+i, c, required));
+  });
+  return r;
+}
+function vline(){ const v=document.createElement("div"); v.className="vline"; return v; }
+function hr(){ const h=document.createElement("div"); h.className="hline"; return h; }
+
+function check(){
+  let divOk=true, mulOk=true;
+
+  document.querySelectorAll("#division input[data-required]")
+    .forEach(i=>{ if(i.value!==i.dataset.ans) divOk=false; });
+
+  document.querySelectorAll("#multiplication input[data-required]")
+    .forEach(i=>{ if(i.value!==i.dataset.ans) mulOk=false; });
+
+  setCard("divCard", divOk);
+  setCard("mulCard", mulOk);
+
+  if(divOk && mulOk) dirty=false;
+}
+
+function setCard(id, ok){
+  const c=document.getElementById(id);
+  c.classList.remove("correct","incorrect");
+  c.classList.add(ok?"correct":"incorrect");
+}
+
+function show(){
+  document.querySelectorAll("input[data-ans]").forEach(i=>{
+    if(i.dataset.ans) i.value=i.dataset.ans;
+  });
+  dirty=false;
+}
+
+function newTasks(){
+  if(dirty && !confirm("Ne visi uždaviniai išspręsti. Generuoti naujus?")) return;
+  generate();
+}
+
+function resetState(){
+  document.querySelectorAll(".card").forEach(c=>c.classList.remove("correct","incorrect"));
+  dirty=false;
+}
+
+generate();
+</script>
+</body>
+</html>
